@@ -90,24 +90,34 @@ public class SKUPurchaseViewController: UIViewController, UIViewControllerTransi
   }
   
   @objc private func tappedBuyButton() {
-    guard let amount = Double(request.details.total.amount.value) else { return }
+    let items = zip(request.details.skuTokens, request.details.displayItems).map { (sku, item) in
+      return SKUOrderItem().then {
+        $0.sku = sku
+        $0.quantity = 1
+      }
+    }
+    
     // Start order transactions
     purchaseView.viewState = .processing
-    // TODO: Support changing view state during animation (currently crashes 😱)
-    DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
-      // TODO: Remove this tip when we integrate with shared libs (https://github.com/brave/brave-ios/issues/2383)
-      self.rewards.ledger.tipPublisherDirectly(self.publisher, amount: amount, currency: "BAT") { result in
+    
+    rewards.ledger.processSKUItems(items) { (result, orderID) in
+      // Allow animations to complete
+      DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
         self.purchaseView.viewState = .complete
-        self.responseHandler(.completed("""
-                        {
-                          "requestId": "a62c29b3-f840-47cd-b895-4573d3190227",
-                          "methodName": "bat",
-                          "details": {
-                            "transaction_id": "bcbbd947-346d-439f-96b4-101bbd966675",
-                            "message": "Payment for Ethiopian Coffee!"
-                          }
-                        }
-                    """))
+      }
+      let response = [
+        "orderId": orderID,
+        "methodName": "bat",
+        "status": result == .ledgerOk ? "completed" : "failed"
+      ]
+      do {
+        guard let jsonString = String(data: try JSONSerialization.data(withJSONObject: response, options: []), encoding: .utf8) else {
+          self.responseHandler(.completed("{\"status\": \"failed\"}"))
+          return
+        }
+        self.responseHandler(.completed(jsonString))
+      } catch {
+        self.responseHandler(.completed("{\"status\": \"failed\"}"))
       }
     }
   }

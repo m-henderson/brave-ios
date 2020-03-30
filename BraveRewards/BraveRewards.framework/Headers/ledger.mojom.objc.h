@@ -22,6 +22,14 @@ typedef NS_ENUM(NSInteger, BATContributionStep) {
 } NS_SWIFT_NAME(ContributionStep);
 
 
+typedef NS_ENUM(NSInteger, BATContributionProcessor) {
+  BATContributionProcessorNone = 0,
+  BATContributionProcessorBraveTokens = 1,
+  BATContributionProcessorUphold = 2,
+  BATContributionProcessorBraveUserFunds = 3,
+} NS_SWIFT_NAME(ContributionProcessor);
+
+
 typedef NS_ENUM(NSInteger, BATExcludeFilter) {
   BATExcludeFilterFilterAll = -1,
   BATExcludeFilterFilterDefault = 0,
@@ -75,6 +83,7 @@ typedef NS_ENUM(NSInteger, BATResult) {
   BATResultAlreadyExists = 26,
   BATResultSafetynetAttestationFailed = 27,
   BATResultDatabaseInitFailed = 28,
+  BATResultRetry = 29,
 } NS_SWIFT_NAME(Result);
 
 
@@ -89,6 +98,8 @@ typedef NS_ENUM(NSInteger, BATRewardsType) {
   BATRewardsTypeAutoContribute = 2,
   BATRewardsTypeOneTimeTip = 8,
   BATRewardsTypeRecurringTip = 16,
+  BATRewardsTypeTransfer = 17,
+  BATRewardsTypePayment = 18,
 } NS_SWIFT_NAME(RewardsType);
 
 
@@ -161,8 +172,6 @@ typedef NS_ENUM(NSInteger, BATPromotionType) {
 typedef NS_ENUM(NSInteger, BATPromotionStatus) {
   BATPromotionStatusActive = 0,
   BATPromotionStatusAttested = 1,
-  BATPromotionStatusClaimed = 2,
-  BATPromotionStatusSignedTokens = 3,
   BATPromotionStatusFinished = 4,
   BATPromotionStatusOver = 5,
 } NS_SWIFT_NAME(PromotionStatus);
@@ -183,8 +192,55 @@ typedef NS_ENUM(NSInteger, BATOperatingSystem) {
 } NS_SWIFT_NAME(OperatingSystem);
 
 
+typedef NS_ENUM(NSInteger, BATCredsBatchType) {
+  BATCredsBatchTypeNone = 0,
+  BATCredsBatchTypePromotion = 1,
+  BATCredsBatchTypeSku = 2,
+} NS_SWIFT_NAME(CredsBatchType);
 
-@class BATContributionInfo, BATContributionPublisher, BATPublisherInfo, BATPublisherBanner, BATPendingContribution, BATPendingContributionInfo, BATVisitData, BATWalletProperties, BATBalance, BATAutoContributeProps, BATMediaEventInfo, BATExternalWallet, BATBalanceReportInfo, BATActivityInfoFilterOrderPair, BATActivityInfoFilter, BATReconcileInfo, BATRewardsInternalsInfo, BATServerPublisherInfo, BATServerPublisherPartial, BATTransferFee, BATContributionQueue, BATContributionQueuePublisher, BATPromotion, BATPromotionCreds, BATUnblindedToken, BATClientInfo, BATRecurringTip, BATTransactionReportInfo, BATContributionReportInfo;
+
+typedef NS_ENUM(NSInteger, BATCredsBatchStatus) {
+  BATCredsBatchStatusNone = 0,
+  BATCredsBatchStatusBlinded = 1,
+  BATCredsBatchStatusClaimed = 2,
+  BATCredsBatchStatusSigned = 3,
+  BATCredsBatchStatusFinished = 4,
+} NS_SWIFT_NAME(CredsBatchStatus);
+
+
+typedef NS_ENUM(NSInteger, BATSKUOrderStatus) {
+  BATSKUOrderStatusNone = 0,
+  BATSKUOrderStatusCreated = 1,
+  BATSKUOrderStatusPending = 2,
+  BATSKUOrderStatusPaid = 3,
+  BATSKUOrderStatusFulfilled = 4,
+  BATSKUOrderStatusCanceled = 5,
+} NS_SWIFT_NAME(SKUOrderStatus);
+
+
+typedef NS_ENUM(NSInteger, BATSKUOrderItemType) {
+  BATSKUOrderItemTypeNone = 0,
+  BATSKUOrderItemTypeSingleUse = 1,
+} NS_SWIFT_NAME(SKUOrderItemType);
+
+
+typedef NS_ENUM(NSInteger, BATSKUTransactionType) {
+  BATSKUTransactionTypeNone = 0,
+  BATSKUTransactionTypeUphold = 1,
+  BATSKUTransactionTypeAnonymousCard = 2,
+  BATSKUTransactionTypeTokens = 3,
+} NS_SWIFT_NAME(SKUTransactionType);
+
+
+typedef NS_ENUM(NSInteger, BATSKUTransactionStatus) {
+  BATSKUTransactionStatusNone = 0,
+  BATSKUTransactionStatusCreated = 1,
+  BATSKUTransactionStatusCompleted = 2,
+} NS_SWIFT_NAME(SKUTransactionStatus);
+
+
+
+@class BATContributionInfo, BATContributionPublisher, BATPublisherInfo, BATPublisherBanner, BATPendingContribution, BATPendingContributionInfo, BATVisitData, BATWalletProperties, BATBalance, BATAutoContributeProps, BATMediaEventInfo, BATExternalWallet, BATBalanceReportInfo, BATActivityInfoFilterOrderPair, BATActivityInfoFilter, BATReconcileInfo, BATRewardsInternalsInfo, BATServerPublisherInfo, BATServerPublisherPartial, BATTransferFee, BATContributionQueue, BATContributionQueuePublisher, BATPromotion, BATUnblindedToken, BATClientInfo, BATRecurringTip, BATTransactionReportInfo, BATContributionReportInfo, BATMonthlyReportInfo, BATCredsBatch, BATSKUOrder, BATSKUOrderItem, BATSKUTransaction;
 
 NS_ASSUME_NONNULL_BEGIN
 
@@ -196,6 +252,7 @@ NS_SWIFT_NAME(ContributionInfo)
 @property (nonatomic) BATContributionStep step;
 @property (nonatomic) int32_t retryCount;
 @property (nonatomic) uint64_t createdAt;
+@property (nonatomic) BATContributionProcessor processor;
 @property (nonatomic, copy) NSArray<BATContributionPublisher *> * publishers;
 @end
 
@@ -311,6 +368,7 @@ NS_SWIFT_NAME(MediaEventInfo)
 
 NS_SWIFT_NAME(ExternalWallet)
 @interface BATExternalWallet : NSObject <NSCopying>
+@property (nonatomic, copy) NSString * type;
 @property (nonatomic, copy) NSString * token;
 @property (nonatomic, copy) NSString * address;
 @property (nonatomic) BATWalletStatus status;
@@ -420,16 +478,6 @@ NS_SWIFT_NAME(Promotion)
 @property (nonatomic) uint64_t expiresAt;
 @property (nonatomic) uint64_t claimedAt;
 @property (nonatomic) bool legacyClaimed;
-@property (nonatomic, copy, nullable) BATPromotionCreds * credentials;
-@end
-
-NS_SWIFT_NAME(PromotionCreds)
-@interface BATPromotionCreds : NSObject <NSCopying>
-@property (nonatomic, copy) NSString * tokens;
-@property (nonatomic, copy) NSString * blindedCreds;
-@property (nonatomic, copy) NSString * signedCreds;
-@property (nonatomic, copy) NSString * publicKey;
-@property (nonatomic, copy) NSString * batchProof;
 @property (nonatomic, copy) NSString * claimId;
 @end
 
@@ -439,7 +487,7 @@ NS_SWIFT_NAME(UnblindedToken)
 @property (nonatomic, copy) NSString * tokenValue;
 @property (nonatomic, copy) NSString * publicKey;
 @property (nonatomic) double value;
-@property (nonatomic, copy) NSString * promotionId;
+@property (nonatomic, copy) NSString * credsId;
 @property (nonatomic) uint64_t expiresAt;
 @end
 
@@ -469,6 +517,64 @@ NS_SWIFT_NAME(ContributionReportInfo)
 @property (nonatomic) double amount;
 @property (nonatomic) BATReportType type;
 @property (nonatomic, copy) NSArray<BATPublisherInfo *> * publishers;
+@property (nonatomic) uint64_t createdAt;
+@end
+
+NS_SWIFT_NAME(MonthlyReportInfo)
+@interface BATMonthlyReportInfo : NSObject <NSCopying>
+@property (nonatomic, copy) BATBalanceReportInfo * balance;
+@property (nonatomic, copy) NSArray<BATTransactionReportInfo *> * transactions;
+@property (nonatomic, copy) NSArray<BATContributionReportInfo *> * contributions;
+@end
+
+NS_SWIFT_NAME(CredsBatch)
+@interface BATCredsBatch : NSObject <NSCopying>
+@property (nonatomic, copy) NSString * credsId;
+@property (nonatomic) int32_t size;
+@property (nonatomic, copy) NSString * creds;
+@property (nonatomic, copy) NSString * blindedCreds;
+@property (nonatomic, copy) NSString * signedCreds;
+@property (nonatomic, copy) NSString * publicKey;
+@property (nonatomic, copy) NSString * batchProof;
+@property (nonatomic, copy) NSString * triggerId;
+@property (nonatomic) BATCredsBatchType triggerType;
+@property (nonatomic) BATCredsBatchStatus status;
+@end
+
+NS_SWIFT_NAME(SKUOrder)
+@interface BATSKUOrder : NSObject <NSCopying>
+@property (nonatomic, copy) NSString * orderId;
+@property (nonatomic) double totalAmount;
+@property (nonatomic, copy) NSString * merchantId;
+@property (nonatomic, copy) NSString * location;
+@property (nonatomic) BATSKUOrderStatus status;
+@property (nonatomic, copy) NSString * contributionId;
+@property (nonatomic) uint64_t createdAt;
+@property (nonatomic, copy) NSArray<BATSKUOrderItem *> * items;
+@end
+
+NS_SWIFT_NAME(SKUOrderItem)
+@interface BATSKUOrderItem : NSObject <NSCopying>
+@property (nonatomic, copy) NSString * orderItemId;
+@property (nonatomic, copy) NSString * orderId;
+@property (nonatomic, copy) NSString * sku;
+@property (nonatomic) int32_t quantity;
+@property (nonatomic) double price;
+@property (nonatomic, copy) NSString * name;
+@property (nonatomic, copy) NSString * desc;
+@property (nonatomic) BATSKUOrderItemType type;
+@property (nonatomic) uint64_t expiresAt;
+@property (nonatomic) uint64_t createdAt;
+@end
+
+NS_SWIFT_NAME(SKUTransaction)
+@interface BATSKUTransaction : NSObject <NSCopying>
+@property (nonatomic, copy) NSString * transactionId;
+@property (nonatomic, copy) NSString * orderId;
+@property (nonatomic, copy) NSString * externalTransactionId;
+@property (nonatomic) BATSKUTransactionType type;
+@property (nonatomic) double amount;
+@property (nonatomic) BATSKUTransactionStatus status;
 @property (nonatomic) uint64_t createdAt;
 @end
 
